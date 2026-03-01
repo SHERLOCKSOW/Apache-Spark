@@ -1,0 +1,1045 @@
+\documentclass[12pt,a4paper]{report}
+
+% Encodage et langue
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+
+% Mise en page
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{setspace}
+
+% Couleurs
+\usepackage{xcolor}
+\definecolor{bleuESP}{RGB}{0, 71, 148}
+\definecolor{bleuClair}{RGB}{52, 152, 219}
+\definecolor{grisCode}{RGB}{245, 245, 245}
+\definecolor{vertSucces}{RGB}{39, 174, 96}
+
+% Liens cliquables et table des matières
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=bleuESP,
+    urlcolor=bleuClair,
+    citecolor=bleuClair,
+    bookmarks=true,
+    bookmarksnumbered=true,
+    pdftitle={Rapport TP2 - Apache Spark},
+    pdfauthor={Groupe 2 - Master1 SRT-GLSI},
+    pdfsubject={Traitement par Lot et Streaming avec Spark},
+}
+
+% Graphiques et images
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% Code source
+\usepackage{listings}
+\usepackage{courier}
+
+% Tableaux
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+
+% Boîtes et encadrés
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{mdframed}
+
+% Mathématiques
+\usepackage{amsmath}
+
+% Espacement
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+
+% ============================================================
+% Style des titres
+% ============================================================
+\titleformat{\chapter}[block]
+  {\normalfont\huge\bfseries\color{bleuESP}}
+  {\thechapter.}{1em}{}
+\titlespacing*{\chapter}{0pt}{20pt}{20pt}
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{bleuESP}}
+  {\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{12pt}{8pt}
+
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{bleuClair}}
+  {\thesubsection}{1em}{}
+
+% ============================================================
+% Style du code
+% ============================================================
+\lstset{
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{grisCode},
+  frame=single,
+  framerule=0.5pt,
+  rulecolor=\color{bleuClair},
+  breaklines=true,
+  breakatwhitespace=false,
+  showstringspaces=false,
+  tabsize=2,
+  captionpos=b,
+  xleftmargin=8pt,
+  xrightmargin=8pt,
+  aboveskip=8pt,
+  belowskip=8pt,
+  keywordstyle=\color{bleuESP}\bfseries,
+  stringstyle=\color{vertSucces},
+  commentstyle=\color{gray}\itshape,
+}
+
+\lstdefinelanguage{scala}{
+  keywords={val, var, def, class, object, import, extends, override, if, else, new, return},
+  sensitive=true,
+  morecomment=[l]{//},
+  morestring=[b]"
+}
+
+\lstdefinelanguage{xml}{
+  keywords={},
+  sensitive=false,
+  morecomment=[s]{<!--}{-->},
+  morestring=[b]",
+  morestring=[s]{>}{<},
+  morestring=[b]'
+}
+
+% ============================================================
+% Boîtes personnalisées
+% ============================================================
+\newtcolorbox{infobox}{
+  colback=blue!5!white,
+  colframe=bleuESP,
+  fonttitle=\bfseries,
+  title=Information,
+  rounded corners,
+  breakable
+}
+
+\newtcolorbox{successbox}{
+  colback=green!5!white,
+  colframe=vertSucces,
+  fonttitle=\bfseries,
+  title=Résultat,
+  rounded corners,
+  breakable
+}
+
+\newtcolorbox{cmdbox}{
+  colback=gray!10!white,
+  colframe=gray!50!black,
+  fonttitle=\bfseries\small,
+  title=Commande,
+  rounded corners,
+  breakable,
+  fontupper=\ttfamily\small
+}
+
+% ============================================================
+% En-tête et pied de page
+% ============================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{bleuESP}\textbf{TP2 - Apache Spark}}
+\fancyhead[R]{\small\color{bleuESP}Master1 SRT-GLSI | 2025-2026}
+\fancyfoot[C]{\small\thepage}
+\fancyfoot[R]{\small\color{gray}Groupe 2}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{bleuESP}\leaders\hrule height \headrulewidth\hfill}}
+
+% ============================================================
+% Commandes utilitaires
+% ============================================================
+\newcommand{\cmd}[1]{\texttt{\colorbox{grisCode}{\strut #1}}}
+\newcommand{\etape}[1]{\vspace{6pt}\textbf{\color{bleuESP}$\blacktriangleright$ #1}\vspace{4pt}}
+
+% ============================================================
+% DOCUMENT
+% ============================================================
+\begin{document}
+
+% ============================================================
+% PAGE DE GARDE
+% ============================================================
+\begin{titlepage}
+\thispagestyle{empty}
+
+% Bandeau haut
+\noindent\colorbox{bleuESP}{\parbox{\textwidth}{
+  \vspace{8pt}
+  \centering
+  \color{white}\large\textbf{ÉCOLE SUPÉRIEURE POLYTECHNIQUE DE DAKAR}\\
+  \color{white}\normalsize Université Cheikh Anta Diop de Dakar
+  \vspace{8pt}
+}}
+
+\vspace{0.5cm}
+
+% Logo et infos école
+\begin{center}
+  % Emplacement logo ESP
+  \begin{tcolorbox}[
+    width=4cm,
+    height=4cm,
+    colback=bleuESP!10,
+    colframe=bleuESP,
+    halign=center,
+    valign=center
+  ]
+  \centering\color{bleuESP}\textbf{\Large ESP}\\
+  \small Dakar
+  \end{tcolorbox}
+
+  \vspace{0.8cm}
+
+  {\color{bleuESP}\rule{0.8\textwidth}{1.5pt}}
+
+  \vspace{0.5cm}
+
+  {\huge\bfseries\color{bleuESP} Rapport de Travaux Pratiques}
+
+  \vspace{0.3cm}
+
+  {\color{bleuClair}\rule{0.6\textwidth}{0.8pt}}
+
+  \vspace{0.3cm}
+
+  {\LARGE\bfseries TP2 — Traitement par Lot et}\\[0.2cm]
+  {\LARGE\bfseries Streaming avec Apache Spark}
+
+  \vspace{0.5cm}
+
+  \begin{tcolorbox}[
+    colback=bleuESP!8,
+    colframe=bleuESP,
+    width=0.85\textwidth,
+    rounded corners
+  ]
+  \centering
+  \textbf{Module :} Big Data \hspace{1cm} \textbf{Année :} 2025--2026\\[4pt]
+  \textbf{Classe :} Master 1 SRT-GLSI \hspace{0.5cm} \textbf{Encadreur :} M. Ba
+  \end{tcolorbox}
+
+  \vspace{0.8cm}
+
+  {\color{bleuESP}\rule{0.8\textwidth}{1.5pt}}
+
+  \vspace{0.5cm}
+
+  {\large\bfseries\color{bleuESP} Groupe 2}
+
+  \vspace{0.4cm}
+
+  \begin{tcolorbox}[
+    colback=white,
+    colframe=bleuESP,
+    width=0.7\textwidth,
+    rounded corners
+  ]
+  \centering
+  \begin{tabular}{ll}
+    \textbf{1.} & Moussa Sow \\[4pt]
+    \textbf{2.} & Djibril Kane Diallo \\[4pt]
+    \textbf{3.} & Hadia Rougui Sow \\[4pt]
+    \textbf{4.} & Mouhamed El Bachir Diop \\
+  \end{tabular}
+  \end{tcolorbox}
+
+\end{center}
+
+\vfill
+
+% Bandeau bas
+\noindent\colorbox{bleuESP}{\parbox{\textwidth}{
+  \vspace{6pt}
+  \centering
+  \color{white}\normalsize Dakar, Mars 2026
+  \vspace{6pt}
+}}
+
+\end{titlepage}
+
+% ============================================================
+% TABLE DES MATIÈRES
+% ============================================================
+\newpage
+\thispagestyle{fancy}
+
+{
+\hypersetup{linkcolor=bleuESP}
+\tableofcontents
+}
+
+\newpage
+
+% ============================================================
+% INTRODUCTION
+% ============================================================
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
+
+Ce rapport présente le compte-rendu du TP2 portant sur le traitement par lot (\textit{Batch Processing}) et le traitement en streaming (\textit{Spark Streaming}) à l'aide d'Apache Spark.
+
+L'objectif principal de ce TP est de mettre en œuvre concrètement les concepts fondamentaux de Spark : la création et la manipulation de RDDs, le lancement de jobs Spark en mode local et sur un cluster Hadoop YARN, ainsi que le traitement de flux de données en temps réel.
+
+Le TP est divisé en trois grandes parties :
+\begin{itemize}
+  \item \textbf{Partie 1 :} Mise en place de l'environnement et test avec Spark Shell
+  \item \textbf{Partie 2 :} Spark Batch en Java (WordCount)
+  \item \textbf{Partie 3 :} Spark Streaming (comptage de mots en temps réel)
+\end{itemize}
+
+L'environnement utilisé est Ubuntu 24, avec Docker pour la virtualisation du cluster Hadoop/Spark composé d'un nœud master et deux nœuds esclaves.
+
+% ============================================================
+% CHAPITRE 1 : ENVIRONNEMENT
+% ============================================================
+\chapter{Mise en Place de l'Environnement}
+
+\section{Outils et Versions Utilisés}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\rowcolor{bleuESP!20}
+\textbf{Outil} & \textbf{Version} & \textbf{Rôle} \\
+\hline
+Apache Hadoop & 2.7.2 & Système de fichiers distribué (HDFS) + YARN \\
+\hline
+Apache Spark & 2.2.1 & Moteur de traitement distribué \\
+\hline
+Docker & 17.09+ & Conteneurisation du cluster \\
+\hline
+IntelliJ IDEA & Community & IDE Java \\
+\hline
+Java & 1.8 & Langage de développement \\
+\hline
+Maven & 3.x & Gestionnaire de dépendances \\
+\hline
+Ubuntu & 24 & Système d'exploitation hôte \\
+\hline
+\end{tabularx}
+\caption{Outils et versions utilisés}
+\end{table}
+
+\section{Téléchargement de l'Image Docker}
+
+La première étape consiste à télécharger l'image Docker contenant Hadoop et Spark préconfigurés.
+
+\begin{cmdbox}
+docker pull liliasfaxi/spark-hadoop:hv-2.7.2
+\end{cmdbox}
+
+\etape{Capture d'écran : Téléchargement de l'image Docker}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du téléchargement de l'image]}
+  \vspace{2cm}}}
+  \caption{Téléchargement de l'image liliasfaxi/spark-hadoop}
+\end{figure}
+
+\section{Création du Réseau Bridge}
+
+Un réseau Docker de type bridge est créé pour permettre la communication entre les conteneurs.
+
+\begin{cmdbox}
+docker network create --driver=bridge hadoop
+\end{cmdbox}
+
+\etape{Capture d'écran : Création du réseau bridge}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de la création du réseau]}
+  \vspace{2cm}}}
+  \caption{Création du réseau Docker bridge "hadoop"}
+\end{figure}
+
+\section{Création des Conteneurs}
+
+\subsection{Création du Nœud Master}
+
+\begin{cmdbox}
+docker run -itd --net=hadoop -p 50070:50070 -p 8088:8088 -p 7077:7077 \\
+  -p 16010:16010 --name hadoop-master --hostname hadoop-master \\
+  liliasfaxi/spark-hadoop:hv-2.7.2
+\end{cmdbox}
+
+\subsection{Création des Nœuds Esclaves}
+
+\begin{cmdbox}
+docker run -itd --net=hadoop -p 8040:8042 --name hadoop-slave1 \\
+  --hostname hadoop-slave1 liliasfaxi/spark-hadoop:hv-2.7.2
+\end{cmdbox}
+
+\begin{cmdbox}
+docker run -itd --net=hadoop -p 8041:8042 --name hadoop-slave2 \\
+  --hostname hadoop-slave2 liliasfaxi/spark-hadoop:hv-2.7.2
+\end{cmdbox}
+
+\etape{Capture d'écran : Création des conteneurs}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de la création des conteneurs]}
+  \vspace{2cm}}}
+  \caption{Création du master et des deux slaves}
+\end{figure}
+
+\section{Démarrage du Cluster Hadoop}
+
+\subsection{Entrée dans le Conteneur Master}
+
+\begin{cmdbox}
+docker exec -it hadoop-master bash
+\end{cmdbox}
+
+\subsection{Lancement des Démons Hadoop}
+
+\begin{cmdbox}
+./start-hadoop.sh
+\end{cmdbox}
+
+\etape{Capture d'écran : Démarrage Hadoop}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du démarrage Hadoop]}
+  \vspace{2cm}}}
+  \caption{Lancement de start-hadoop.sh}
+\end{figure}
+
+\subsection{Vérification des Démons}
+
+La commande \cmd{jps} permet de vérifier que tous les processus Java nécessaires sont bien lancés.
+
+\begin{cmdbox}
+jps
+\end{cmdbox}
+
+\begin{successbox}
+Résultat attendu sur le master :
+\begin{verbatim}
+257  NameNode
+363  SecondaryNameNode
+538  ResourceManager
+880  Jps
+\end{verbatim}
+Et sur les slaves : \texttt{DataNode} + \texttt{NodeManager}
+\end{successbox}
+
+\etape{Capture d'écran : Résultat de jps}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du résultat de jps]}
+  \vspace{2cm}}}
+  \caption{Vérification des démons avec jps}
+\end{figure}
+
+% ============================================================
+% CHAPITRE 2 : TEST SPARK SHELL
+% ============================================================
+\chapter{Test de Spark avec Spark-Shell}
+
+\section{Création et Chargement du Fichier de Test}
+
+\subsection{Création du Fichier}
+
+Un fichier texte simple est créé pour tester le WordCount :
+
+\begin{cmdbox}
+cat > file1.txt << EOF
+Hello Spark Wordcount!
+Hello Hadoop Also :)
+EOF
+\end{cmdbox}
+
+\etape{Capture d'écran : Création du fichier cat}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de la création du fichier]}
+  \vspace{2cm}}}
+  \caption{Création du fichier file1.txt}
+\end{figure}
+
+\subsection{Chargement dans HDFS}
+
+\begin{cmdbox}
+hadoop fs -mkdir -p input \\
+hadoop fs -put file1.txt input/ \\
+hadoop fs -ls input/
+\end{cmdbox}
+
+\etape{Capture d'écran : Chargement dans HDFS}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du chargement HDFS]}
+  \vspace{2cm}}}
+  \caption{Création du répertoire HDFS et chargement du fichier}
+\end{figure}
+
+\section{Lancement de Spark Shell}
+
+\begin{cmdbox}
+spark-shell
+\end{cmdbox}
+
+\etape{Capture d'écran : Lancement de Spark Shell}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du lancement de spark-shell]}
+  \vspace{2cm}}}
+  \caption{Interface Spark Shell avec le prompt scala>}
+\end{figure}
+
+\section{Exécution du Code Scala WordCount}
+
+Le code Scala suivant est exécuté ligne par ligne dans le shell :
+
+\begin{lstlisting}[language=scala, caption=WordCount en Scala]
+val lines = sc.textFile("input/file1.txt")
+val words = lines.flatMap(_.split("\\s+"))
+val wc = words.map(w => (w, 1)).reduceByKey(_ + _)
+wc.saveAsTextFile("output/file1.count")
+\end{lstlisting}
+
+Ce code effectue les opérations suivantes :
+\begin{enumerate}
+  \item \textbf{Ligne 1 :} Chargement du fichier depuis HDFS dans un RDD
+  \item \textbf{Ligne 2 :} Découpage des lignes en mots (flatMap)
+  \item \textbf{Ligne 3 :} Transformation en paires (mot, 1) puis réduction par clé
+  \item \textbf{Ligne 4 :} Sauvegarde du résultat dans HDFS
+\end{enumerate}
+
+\etape{Capture d'écran : Exécution du code Scala}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de l'exécution Scala]}
+  \vspace{2cm}}}
+  \caption{Exécution du WordCount en Scala dans Spark Shell}
+\end{figure}
+
+\section{Récupération et Affichage des Résultats}
+
+\begin{cmdbox}
+hadoop fs -get output/file1.count \\
+cat file1.count/part-00000 \\
+cat file1.count/part-00001
+\end{cmdbox}
+
+\begin{successbox}
+Résultat obtenu :
+\begin{verbatim}
+(Hello,2)
+(Wordcount!,1)
+(Spark,1)
+(:),1)
+(Also,1)
+(Hadoop,1)
+\end{verbatim}
+\textbf{"Hello"} apparaît 2 fois, les autres mots 1 fois chacun.
+\end{successbox}
+
+\etape{Capture d'écran : Résultats du WordCount}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran des résultats]}
+  \vspace{2cm}}}
+  \caption{Résultats du WordCount Scala}
+\end{figure}
+
+% ============================================================
+% CHAPITRE 3 : SPARK BATCH EN JAVA
+% ============================================================
+\chapter{Spark Batch en Java}
+
+\section{Lancement d'IntelliJ IDEA}
+
+IntelliJ IDEA Community est utilisé comme IDE pour développer l'application Java.
+
+\begin{cmdbox}
+intellij-idea-community
+\end{cmdbox}
+
+\etape{Capture d'écran : Lancement d'IntelliJ}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du lancement d'IntelliJ]}
+  \vspace{2cm}}}
+  \caption{Interface de démarrage d'IntelliJ IDEA}
+\end{figure}
+
+\section{Création du Projet Maven}
+
+\subsection{Configuration du Nouveau Projet}
+
+Dans IntelliJ IDEA, un nouveau projet Maven est créé avec la configuration suivante :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\rowcolor{bleuESP!20}
+\textbf{Paramètre} & \textbf{Valeur} \\
+\hline
+Build system & Maven \\
+\hline
+JDK & Java 1.8 \\
+\hline
+GroupId & spark.batch \\
+\hline
+ArtifactId & wordcount \\
+\hline
+Version & 1 \\
+\hline
+\end{tabular}
+\caption{Configuration du projet Maven}
+\end{table}
+
+\etape{Capture d'écran : Création du projet Maven}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de la création du projet]}
+  \vspace{2cm}}}
+  \caption{Fenêtre New Project IntelliJ avec configuration Maven}
+\end{figure}
+
+\section{Configuration du fichier pom.xml}
+
+Le fichier \texttt{pom.xml} est édité pour ajouter les dépendances Spark nécessaires :
+
+\begin{lstlisting}[language=xml, caption=Contenu du pom.xml]
+<properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+</properties>
+<dependencies>
+    <dependency>
+        <groupId>org.apache.spark</groupId>
+        <artifactId>spark-core_2.11</artifactId>
+        <version>2.1.0</version>
+    </dependency>
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-log4j12</artifactId>
+        <version>1.7.22</version>
+    </dependency>
+    <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>23.0</version>
+    </dependency>
+</dependencies>
+\end{lstlisting}
+
+\etape{Capture d'écran : Édition du pom.xml}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du pom.xml]}
+  \vspace{2cm}}}
+  \caption{Fichier pom.xml avec les dépendances Spark}
+\end{figure}
+
+\section{Création du Package et de la Classe Java}
+
+\subsection{Création du Package}
+
+Un package \texttt{tn.insat.tp21} est créé sous \texttt{src/main/java}.
+
+\etape{Capture d'écran : Création du package}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de la création du package]}
+  \vspace{2cm}}}
+  \caption{Création du package tn.insat.tp21}
+\end{figure}
+
+\subsection{Code de la Classe WordCountTask}
+
+La classe \texttt{WordCountTask} est créée dans ce package :
+
+\begin{lstlisting}[language=Java, caption=WordCountTask.java]
+package tn.insat.tp21;
+
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import scala.Tuple2;
+import java.util.Arrays;
+import static com.google.common.base.Preconditions.checkArgument;
+
+public class WordCountTask {
+    public static void main(String[] args) {
+        checkArgument(args.length > 1,
+            "Please provide the path of input file and output dir");
+        new WordCountTask().run(args[0], args[1]);
+    }
+
+    public void run(String inputFilePath, String outputDir) {
+        SparkConf conf = new SparkConf()
+            .setAppName(WordCountTask.class.getName());
+        JavaSparkContext sc = new JavaSparkContext(conf);
+        JavaRDD<String> textFile = sc.textFile(inputFilePath);
+        JavaPairRDD<String, Integer> counts = textFile
+            .flatMap(s -> Arrays.asList(s.split("\t")).iterator())
+            .mapToPair(word -> new Tuple2<>(word, 1))
+            .reduceByKey((a, b) -> a + b);
+        counts.saveAsTextFile(outputDir);
+    }
+}
+\end{lstlisting}
+
+\etape{Capture d'écran : Classe WordCountTask}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de la classe Java]}
+  \vspace{2cm}}}
+  \caption{Classe WordCountTask dans IntelliJ}
+\end{figure}
+
+\section{Installation de Maven et Résolution des Dépendances}
+
+\subsection{Installation de Maven}
+
+\begin{cmdbox}
+sudo apt install maven -y
+\end{cmdbox}
+
+\subsection{Résolution des Dépendances}
+
+\begin{cmdbox}
+cd ~/IdeaProjects/wordcount \\
+mvn dependency:resolve
+\end{cmdbox}
+
+\etape{Capture d'écran : Installation et résolution des dépendances}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de l'installation Maven]}
+  \vspace{2cm}}}
+  \caption{Installation Maven et résolution des dépendances}
+\end{figure}
+
+\section{Test en Local}
+
+Le job est d'abord testé localement via IntelliJ avec les arguments :
+\texttt{src/main/resources/loremipsum.txt src/main/resources/out}
+
+\begin{successbox}
+Le job s'exécute avec succès, les fichiers \texttt{part-00000} et \texttt{part-00001} sont générés dans le dossier \texttt{out} avec le comptage des mots du fichier loremipsum.
+\end{successbox}
+
+\etape{Capture d'écran : Test local réussi}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du test local]}
+  \vspace{2cm}}}
+  \caption{Résultat du test local avec exit code 0}
+\end{figure}
+
+\section{Lancement sur le Cluster Hadoop}
+
+\subsection{Packaging et Copie du JAR}
+
+\begin{cmdbox}
+cd ~/IdeaProjects/wordcount \\
+mvn package -DskipTests \\
+docker cp target/wordcount-1.jar hadoop-master:/root/wordcount-1.jar
+\end{cmdbox}
+
+\subsection{Soumission du Job via spark-submit}
+
+\begin{cmdbox}
+spark-submit --class tn.insat.tp21.WordCountTask \\
+  --master local \\
+  --driver-memory 4g --executor-memory 2g --executor-cores 1 \\
+  wordcount-1.jar \\
+  input/purchases.txt \\
+  output3
+\end{cmdbox}
+
+\etape{Capture d'écran : Lancement du job sur le cluster}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du spark-submit]}
+  \vspace{2cm}}}
+  \caption{Exécution du job WordCount via spark-submit}
+\end{figure}
+
+\subsection{Vérification des Résultats}
+
+\begin{cmdbox}
+hadoop fs -get output3 \\
+cat output3/part-00000 | head -20
+\end{cmdbox}
+
+\begin{successbox}
+\begin{verbatim}
+(166.92,82)
+(116.84,86)
+(379.92,78)
+(411.79,95)
+...
+\end{verbatim}
+Le job Spark Batch en Java s'exécute avec succès sur le cluster !
+\end{successbox}
+
+\etape{Capture d'écran : Résultats sur le cluster}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran des résultats output3]}
+  \vspace{2cm}}}
+  \caption{Résultats du WordCount sur le fichier purchases.txt}
+\end{figure}
+
+% ============================================================
+% CHAPITRE 4 : SPARK STREAMING
+% ============================================================
+\chapter{Spark Streaming}
+
+\section{Présentation}
+
+Spark Streaming permet le traitement de données en temps réel. Les données sont reçues en continu depuis diverses sources (Kafka, sockets TCP, etc.) et divisées en micro-batches traités par le moteur Spark.
+
+\begin{figure}[H]
+\centering
+\begin{tcolorbox}[
+  colback=bleuESP!5,
+  colframe=bleuESP,
+  width=0.9\textwidth,
+  halign=center
+]
+\textbf{Flux de données} $\longrightarrow$ \textbf{Spark Streaming} $\longrightarrow$ \textbf{Micro-batches} $\longrightarrow$ \textbf{Spark Engine} $\longrightarrow$ \textbf{Résultats}
+\end{tcolorbox}
+\caption{Architecture de Spark Streaming}
+\end{figure}
+
+\section{Création du Projet Maven Stream}
+
+\subsection{Configuration du Projet}
+
+Un nouveau projet Maven est créé dans IntelliJ :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\rowcolor{bleuESP!20}
+\textbf{Paramètre} & \textbf{Valeur} \\
+\hline
+Build system & Maven \\
+\hline
+JDK & Java 1.8 \\
+\hline
+GroupId & spark.streaming \\
+\hline
+ArtifactId & stream \\
+\hline
+Version & 1 \\
+\hline
+\end{tabular}
+\caption{Configuration du projet Streaming}
+\end{table}
+
+\subsection{Contenu du pom.xml}
+
+\begin{lstlisting}[language=xml, caption=pom.xml du projet Streaming]
+<dependencies>
+    <dependency>
+        <groupId>org.apache.spark</groupId>
+        <artifactId>spark-core_2.11</artifactId>
+        <version>2.2.1</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.spark</groupId>
+        <artifactId>spark-streaming_2.11</artifactId>
+        <version>2.2.1</version>
+    </dependency>
+</dependencies>
+\end{lstlisting}
+
+\section{Résolution des Dépendances}
+
+\begin{cmdbox}
+cd ~/IdeaProjects/stream \\
+mvn dependency:resolve
+\end{cmdbox}
+
+\etape{Capture d'écran : Résolution des dépendances streaming}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de la résolution des dépendances]}
+  \vspace{2cm}}}
+  \caption{BUILD SUCCESS pour le projet stream}
+\end{figure}
+
+\section{Création de la Classe Stream}
+
+Le package \texttt{tn.insat.tp22} est créé, puis la classe \texttt{Stream} :
+
+\begin{lstlisting}[language=Java, caption=Stream.java - Spark Streaming WordCount]
+package tn.insat.tp22;
+
+import org.apache.spark.SparkConf;
+import org.apache.spark.streaming.Durations;
+import org.apache.spark.streaming.api.java.*;
+import scala.Tuple2;
+import java.util.Arrays;
+
+public class Stream {
+    public static void main(String[] args)
+            throws InterruptedException {
+        SparkConf conf = new SparkConf()
+            .setAppName("NetworkWordCount")
+            .setMaster("local[*]");
+
+        JavaStreamingContext jssc =
+            new JavaStreamingContext(conf, Durations.seconds(1));
+
+        // Ecoute sur le port 9999
+        JavaReceiverInputDStream<String> lines =
+            jssc.socketTextStream("localhost", 9999);
+
+        // Traitement du stream
+        JavaDStream<String> words =
+            lines.flatMap(
+                x -> Arrays.asList(x.split(" ")).iterator());
+        JavaPairDStream<String, Integer> pairs =
+            words.mapToPair(s -> new Tuple2<>(s, 1));
+        JavaPairDStream<String, Integer> wordCounts =
+            pairs.reduceByKey((i1, i2) -> i1 + i2);
+
+        wordCounts.print();
+        jssc.start();
+        jssc.awaitTermination();
+    }
+}
+\end{lstlisting}
+
+\etape{Capture d'écran : Création de la classe Stream}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran de la classe Stream]}
+  \vspace{2cm}}}
+  \caption{Classe Stream.java dans IntelliJ}
+\end{figure}
+
+\section{Test en Local}
+
+\subsection{Procédure de Test}
+
+Le test se déroule en deux étapes simultanées :
+
+\begin{enumerate}
+  \item \textbf{Terminal 1 :} Lancer la commande \cmd{nc -lk 9999} pour créer le flux de données
+  \item \textbf{IntelliJ :} Exécuter la classe \texttt{Stream} qui écoute sur le port 9999
+\end{enumerate}
+
+\begin{cmdbox}
+nc -lk 9999
+\end{cmdbox}
+
+Puis taper du texte dans ce terminal, par exemple :
+\begin{verbatim}
+hello world hello spark
+hello hadoop
+\end{verbatim}
+
+\subsection{Résultats en Temps Réel}
+
+\etape{Capture d'écran : Exécution du streaming}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran du streaming en exécution]}
+  \vspace{2cm}}}
+  \caption{Console IntelliJ montrant le streaming en cours}
+\end{figure}
+
+\begin{successbox}
+Résultat affiché dans la console IntelliJ à chaque batch d'une seconde :
+\begin{verbatim}
+-------------------------------------------
+Time: 1772324209000 ms
+-------------------------------------------
+(hello,2)
+(world,1)
+(spark,1)
+(hadoop,1)
+\end{verbatim}
+Le comptage des mots s'affiche en temps réel à chaque seconde !
+\end{successbox}
+
+\etape{Capture d'écran : Résultats du streaming}
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.9\textwidth}{\centering\vspace{2cm}
+  \textit{[Insérer ici la capture d'écran des résultats streaming]}
+  \vspace{2cm}}}
+  \caption{Résultats du comptage en temps réel}
+\end{figure}
+
+% ============================================================
+% CONCLUSION
+% ============================================================
+\chapter*{Conclusion}
+\addcontentsline{toc}{chapter}{Conclusion}
+
+Ce TP nous a permis de mettre en pratique les concepts fondamentaux d'Apache Spark dans un environnement distribué réel. Voici les points clés retenus :
+
+\begin{tcolorbox}[colback=bleuESP!5, colframe=bleuESP, title=\textbf{Bilan du TP}]
+\begin{itemize}
+  \item[$\checkmark$] \textbf{Installation et configuration} d'un cluster Hadoop/Spark avec Docker (1 master + 2 slaves)
+  \item[$\checkmark$] \textbf{Utilisation de Spark Shell} en Scala pour le traitement interactif de données sur HDFS
+  \item[$\checkmark$] \textbf{Développement d'une application Batch} en Java (WordCount) avec Maven dans IntelliJ
+  \item[$\checkmark$] \textbf{Soumission d'un job Spark} sur le cluster via \texttt{spark-submit}
+  \item[$\checkmark$] \textbf{Traitement en Streaming} en temps réel via sockets TCP avec comptage de mots par micro-batch
+\end{itemize}
+\end{tcolorbox}
+
+\vspace{0.5cm}
+
+Apache Spark se confirme comme un outil puissant pour le traitement de données à grande échelle, avec sa capacité à gérer aussi bien le traitement par lot que le streaming en temps réel via une API unifiée en Java, Scala ou Python.
+
+\vspace{0.5cm}
+
+\begin{center}
+{\color{bleuESP}\rule{0.5\textwidth}{0.8pt}}\\
+\vspace{0.3cm}
+\textit{Rapport réalisé par le Groupe 2 — Master1 SRT-GLSI}\\
+\textit{École Supérieure Polytechnique de Dakar — 2025/2026}
+\end{center}
+
+\end{document}
